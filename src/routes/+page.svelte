@@ -8,6 +8,9 @@
     let centerText = '';
     let zoomText = '';
   
+    const LAYER_ID = 'ch.so.afu.gewaesserschutz.schutzzonen';
+    let schutzOn = false;
+
     function parseCenterAndZoom(href: string) {
         try {
         const u = new URL(href);
@@ -28,25 +31,117 @@
         }
     }
 
+    let lastAppliedSchutzOn: boolean | null = null;
+
+    function whenQwc2Ready(cb: (q: any) => void) {
+      const w = mapFrame?.contentWindow as any;
+      if (!w) return;
+      const tryRun = () => {
+        const q = w.qwc2;
+        if (q) { cb(q); return true; }
+        return false;
+      };
+      if (tryRun()) return;
+      w.addEventListener('QWC2ApiReady', () => tryRun(), { once: true });
+      const id = setInterval(() => { if (tryRun()) clearInterval(id); }, 200);
+    }
+
+    function setSchutzzonen(on: boolean) {
+      console.log("setSchutzzonen");
+      whenQwc2Ready((q) => {
+        const addThemeSublayer = q.addThemeSublayer ?? q.api?.addThemeSublayer;
+        const setLayerVisibility = q.setLayerVisibility ?? q.api?.setLayerVisibility;
+
+        console.log(q);
+        console.log(addThemeSublayer);
+        console.log(setLayerVisibility);
+
+        if (on) {
+          const st = q.getState?.();
+          console.log(st.layers);
+
+          const hasLayer = !!st?.layers?.flat?.some((l: any) => l?.name === LAYER_ID);
+          if (!hasLayer && typeof addThemeSublayer === 'function') {
+            console.log("ADD Layer....");
+            console.log(q.getState()?.theme?.current);
+            var theme = q.getState()?.theme?.current
+            //addThemeSublayer(LAYER_ID);
+
+            const LR = q.LayerRole ?? { THEME: 'THEME' };
+
+            q.addLayer({
+              id: LAYER_ID,
+              name: LAYER_ID,
+              role: LR.THEME,
+              type: "wms",
+              serverType: "qgis",
+              url: theme.url,
+              featureInfoUrl: "/api/v1/featureinfo/somap",
+              LAYER_ID,
+              queryLayers: [LAYER_ID],
+              title: "Schutzzonen (Gewässerschutz)",
+              version: "1.3.0",
+              visibility: true,
+              opacity: 122,
+              queryable: true,
+              infoFormats: 'text/xml',
+              with_htmlcontent: true,
+              legendUrl: "/api/v1/legend/somap?VERSION=1.3.0&LAYERFONTSIZE=9&ITEMFONTSIZE=9&LAYERTITLESPACE=0.5&LAYERSPACE=1&SERVICE=WMS&REQUEST=GetLegendGraphic&FORMAT=image%2Fpng&CRS=EPSG%3A2056&SRS=EPSG%3A2056&SLD_VERSION=1.1.0&WIDTH=200&HEIGHT=200&SCALE=377953&LAYER=ch.so.afu.gewaesserschutz.schutzzonen&STYLES=&FILTER=" 
+            });   
+
+
+          }
+          if (typeof setLayerVisibility === 'function') setLayerVisibility(LAYER_ID, true);
+        } else {
+          //if (typeof setLayerVisibility === 'function') setLayerVisibility(LAYER_ID, false);
+          q.removeLayer(LAYER_ID);
+
+        }
+
+        console.log("nachher");
+        const st = q.getState?.();
+        console.log(st);        
+        console.log(st.layers);
+
+
+      });
+    }
+
+    // Initialize the checkbox from the current map state
+    function syncCheckboxFromState() {
+      whenQwc2Ready((q) => {
+        const st = q.getState?.();
+        const present = !!st?.layers?.flat?.some((l: any) => l?.name === LAYER_ID && l?.visibility !== false);
+        schutzOn = present;
+      });
+    }
+
+    onMount(syncCheckboxFromState);
+
+    $: if (schutzOn !== lastAppliedSchutzOn) {
+      lastAppliedSchutzOn = schutzOn;
+      setSchutzzonen(schutzOn);
+    }
+
     onMount(() => {
         const poll = () => {
-        try {
-            const href = mapFrame?.contentWindow?.location?.href;
-            if (href && href !== lastHref) {
-            lastHref = href;
-            hrefText = href;
-            const { center, zoom } = parseCenterAndZoom(href);
-            centerText = center ?? '(n/a)';
-            zoomText = zoom ?? '(n/a)';
+          try {
+              const href = mapFrame?.contentWindow?.location?.href;
+              if (href && href !== lastHref) {
+              lastHref = href;
+              hrefText = href;
+              const { center, zoom } = parseCenterAndZoom(href);
+              centerText = center ?? '(n/a)';
+              zoomText = zoom ?? '(n/a)';
 
-            // also log to console if you like
-            console.log('[map] href:', hrefText);
-            console.log('[map] center (c):', centerText);
-            console.log('[map] zoom (s):', zoomText);
-            }
-        } catch {
-            /* if errors occur here, the iframe isn't same-origin yet */
-        }
+              // also log to console if you like
+              console.log('[map] href:', hrefText);
+              console.log('[map] center (c):', centerText);
+              console.log('[map] zoom (s):', zoomText);
+              }
+          } catch {
+              /* if errors occur here, the iframe isn't same-origin yet */
+          }
         };
 
         const timer = setInterval(poll, 300);
@@ -55,7 +150,9 @@
     });
 
     import Accordion, { Panel, Header, Content } from '@smui-extra/accordion';
-  
+    import FormField from '@smui/form-field';
+    import Checkbox from '@smui/checkbox';
+
     const items = [
     { title: 'Panel 1', body: 'Dummy content for panel 1.' },
     {
@@ -66,8 +163,7 @@
     { title: 'Panel 3', body: 'Dummy content for panel 3.' },
     { title: 'Panel 4', body: 'Dummy content for panel 4.' },
     { title: 'Panel 5', body: 'Dummy content for panel 5.' },
-    { title: 'Panel 6', body: 'Dummy content for panel 6.' },
-    { title: 'Panel 7', body: 'Dummy content for panel 7.' }
+    { title: 'Panel 6', body: 'Dummy content for panel 6.' }
   ];
 </script>
   
@@ -161,63 +257,74 @@
 </div>
 <div class="redbar"></div>
 
-  <div class="layout">
-    <div class="left">
-      <Accordion>
-        {#each items as item}
-          <Panel>
-            <Header>{item.title}</Header>
-            <Content>
-                {#if item.type === 'iframe'}
-                <iframe
-                  class="panel-frame"
-                  src={item.src}
-                  title="Faktenblatt (GINES)"
-                  loading="lazy"
-                  referrerpolicy="no-referrer"
-                  allow="fullscreen"
-                />
-              {:else}
-                <p>{item.body}</p>
-                <p>
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                  Integer nec odio. Praesent libero. Sed cursus ante dapibus diam.
-                </p>
-              {/if}
-            </Content>
-          </Panel>
-        {/each}
-        <!-- Panel 8: Debug -->
-        <Panel open>
-            <Header>Debug</Header>
-            <Content>
-            <dl class="debug">
-                <dt>href</dt>
-                <dd>
-                    {#if hrefText}
-                        <a href={hrefText} target="_blank" rel="noopener noreferrer">{hrefText}</a>
-                    {:else}
-                        (n/a)
-                    {/if}
-                </dd>
-                <dt>center (c)</dt>
-                <dd>{centerText || '(n/a)'}</dd>
-                <dt>zoom (s)</dt>
-                <dd>{zoomText || '(n/a)'}</dd>
-            </dl>
-            </Content>
+<div class="layout">
+  <div class="left">
+    <Accordion>
+      {#each items as item}
+        <Panel>
+          <Header>{item.title}</Header>
+          <Content>
+              {#if item.type === 'iframe'}
+              <iframe
+                class="panel-frame"
+                src={item.src}
+                title="Faktenblatt (GINES)"
+                loading="lazy"
+                referrerpolicy="no-referrer"
+                allow="fullscreen"
+              />
+            {:else}
+              <p>{item.body}</p>
+              <p>
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                Inte
+                r nec odio. Praesent libero. Sed cursus ante dapibus diam.
+              </p>
+            {/if}
+          </Content>
         </Panel>
-      </Accordion>
-    </div>
-  
-    <div class="right">
-        <iframe
-        bind:this={mapFrame}
-        src="/map"
-        title="SO Map"
-        style="width:100%;height:100%;border:0"
-        loading="lazy"
-      />
-    </div>
+      {/each}
+      <Panel>
+        <Header>Karten (GIS)</Header>
+        <Content>
+          <FormField>
+            <Checkbox bind:checked={schutzOn} on:change={onCheckboxChange}/>
+            <label>Schutzzonen</label>
+          </FormField>
+          <p class="hint">Layer-ID: {LAYER_ID}</p>
+        </Content>
+      </Panel>
+      <!-- Panel 8: Debug -->
+      <Panel open>
+          <Header>Debug Panel</Header>
+          <Content>
+          <dl class="debug">
+              <dt>href</dt>
+              <dd>
+                  {#if hrefText}
+                      <a href={hrefText} target="_blank" rel="noopener noreferrer">{hrefText}</a>
+                  {:else}
+                      (n/a)
+                  {/if}
+              </dd>
+              <dt>center (c)</dt>
+              <dd>{centerText || '(n/a)'}</dd>
+              <dt>zoom (s)</dt>
+              <dd>{zoomText || '(n/a)'}</dd>
+          </dl>
+          </Content>
+      </Panel>
+    </Accordion>
   </div>
+
+  <div class="right">
+      <iframe
+      bind:this={mapFrame}
+      src="/map"
+      title="SO Map"
+      style="width:100%;height:100%;border:0"
+      loading="lazy"
+    />
+  </div>
+</div>
   

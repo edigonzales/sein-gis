@@ -1,6 +1,6 @@
 import type { RequestHandler } from '@sveltejs/kit';
 
-const UPSTREAM = 'https://geo.so.ch';
+const UPSTREAM = 'https://geo-t.so.ch';
 
 // ---------- helpers for /map HTML/CSS -----------------
 
