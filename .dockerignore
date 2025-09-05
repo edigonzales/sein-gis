@@ -1,0 +1,11 @@
+node_modules
+.svelte-kit
+.vite
+dist
+build
+.git
+.gitignore
+Dockerfile
+npm-debug.log*
+*.local
+
