@@ -47,32 +47,32 @@
     }
 
     function setSchutzzonen(on: boolean) {
-      console.log("setSchutzzonen");
       whenQwc2Ready((q) => {
         const addThemeSublayer = q.addThemeSublayer ?? q.api?.addThemeSublayer;
         const setLayerVisibility = q.setLayerVisibility ?? q.api?.setLayerVisibility;
 
-        console.log(q);
-        console.log(addThemeSublayer);
-        console.log(setLayerVisibility);
+        // console.log(q);
+        // console.log(addThemeSublayer);
+        // console.log(setLayerVisibility);
 
         if (on) {
           const st = q.getState?.();
-          console.log(st.layers);
+          // console.log(st.layers);
 
           const hasLayer = !!st?.layers?.flat?.some((l: any) => l?.name === LAYER_ID);
           if (!hasLayer && typeof addThemeSublayer === 'function') {
-            console.log("ADD Layer....");
-            console.log(q.getState()?.theme?.current);
+            // console.log("ADD Layer....");
+            // console.log(q.getState()?.theme?.current);
             var theme = q.getState()?.theme?.current
             //addThemeSublayer(LAYER_ID);
 
             const LR = q.LayerRole ?? { THEME: 'THEME' };
-
+            
+            // TODO: Metadaten fehlen noch
             q.addLayer({
               id: LAYER_ID,
               name: LAYER_ID,
-              role: LR.THEME,
+              role: LR.USERLAYER,
               type: "wms",
               serverType: "qgis",
               url: theme.url,
@@ -88,8 +88,6 @@
               with_htmlcontent: true,
               legendUrl: "/api/v1/legend/somap?VERSION=1.3.0&LAYERFONTSIZE=9&ITEMFONTSIZE=9&LAYERTITLESPACE=0.5&LAYERSPACE=1&SERVICE=WMS&REQUEST=GetLegendGraphic&FORMAT=image%2Fpng&CRS=EPSG%3A2056&SRS=EPSG%3A2056&SLD_VERSION=1.1.0&WIDTH=200&HEIGHT=200&SCALE=377953&LAYER=ch.so.afu.gewaesserschutz.schutzzonen&STYLES=&FILTER=" 
             });   
-
-
           }
           if (typeof setLayerVisibility === 'function') setLayerVisibility(LAYER_ID, true);
         } else {
@@ -97,13 +95,6 @@
           q.removeLayer(LAYER_ID);
 
         }
-
-        console.log("nachher");
-        const st = q.getState?.();
-        console.log(st);        
-        console.log(st.layers);
-
-
       });
     }
 
@@ -135,9 +126,9 @@
               zoomText = zoom ?? '(n/a)';
 
               // also log to console if you like
-              console.log('[map] href:', hrefText);
-              console.log('[map] center (c):', centerText);
-              console.log('[map] zoom (s):', zoomText);
+              // console.log('[map] href:', hrefText);
+              // console.log('[map] center (c):', centerText);
+              // console.log('[map] zoom (s):', zoomText);
               }
           } catch {
               /* if errors occur here, the iframe isn't same-origin yet */
