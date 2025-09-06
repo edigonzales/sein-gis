@@ -36,3 +36,9 @@ npm run build
 You can preview the production build with `npm run preview`.
 
 > To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+
+
+## Links
+
+- https://qwc-services.github.io/master/references/qwc2_plugins/#api
+- https://github.com/qgis/qwc2-demo-app/blob/master/static/api_examples.js

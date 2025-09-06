@@ -279,7 +279,7 @@
         <Header>Karten (GIS)</Header>
         <Content>
           <FormField>
-            <Checkbox bind:checked={schutzOn} on:change={onCheckboxChange}/>
+            <Checkbox bind:checked={schutzOn} />
             <label>Schutzzonen</label>
           </FormField>
           <p class="hint">Layer-ID: {LAYER_ID}</p>
